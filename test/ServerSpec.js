@@ -5,7 +5,7 @@ var httpMocks = require('node-mocks-http');
 
 var app = require('../server/app.js');
 var schema = require('../server/db/config.js');
-var port = 4568;
+var port = 4569;
 
 /************************************************************/
 // Mocha doesn't have a way to designate pending before blocks.
@@ -123,7 +123,7 @@ describe('', function() {
     });
   });
 
-  xdescribe('Account Creation:', function() {
+  describe('Account Creation:', function() {
 
     it('signup creates a new user record', function(done) {
       var options = {
@@ -208,7 +208,7 @@ describe('', function() {
     });
   });
 
-  xdescribe('Account Login:', function() {
+  describe('Account Login:', function() {
 
     beforeEach(function(done) {
       var options = {
@@ -277,7 +277,7 @@ describe('', function() {
     });
   });
 
-  xdescribe('Sessions Schema:', function() {
+  describe('Sessions Schema:', function() {
     it('contains a sessions table', function(done) {
       var queryString = 'SELECT * FROM sessions';
       db.query(queryString, function(err, results) {
@@ -325,7 +325,7 @@ describe('', function() {
     });
   });
 
-  xdescribe('Express Middleware', function() {
+  describe('Express Middleware', function() {
     var cookieParser = require('../server/middleware/cookieParser.js');
     var createSession = require('../server/middleware/auth.js').createSession;
 
@@ -371,7 +371,7 @@ describe('', function() {
       });
     });
 
-    describe('Session Parser', function() {
+    xdescribe('Session Parser', function() {
       it('initializes a new session when there are no cookies on the request', function(done) {
         var requestWithoutCookies = httpMocks.createRequest();
         var response = httpMocks.createResponse();
@@ -403,12 +403,12 @@ describe('', function() {
         var response = httpMocks.createResponse();
 
         createSession(requestWithoutCookie, response, function() {
-          var cookie = response.cookies.shortlyid.value;
-          var secondResponse = httpMocks.createResponse();
-          var requestWithCookies = httpMocks.createRequest();
+          var cookie = response.cookies.shortlyid.value; // after the session was created, response will have this.
+          var secondResponse = httpMocks.createResponse(); // another resposne
+          var requestWithCookies = httpMocks.createRequest(); // has cookies already
           requestWithCookies.cookies.shortlyid = cookie;
 
-          createSession(requestWithCookies, secondResponse, function() {
+          createSession(requestWithCookies, secondResponse, function() { // its saying that you should create sessions object even if they do have cookies
             var session = requestWithCookies.session;
             expect(session).to.be.an('object');
             expect(session.hash).to.exist;
@@ -442,10 +442,20 @@ describe('', function() {
 
         db.query('INSERT INTO users (username) VALUES (?)', username, function(error, results) {
           if (error) { return done(error); }
-          var userId = results.insertId;
+          var userId = results.insertId; // 1 first user is added to the database table 'users'
 
+          //1st session w/out cookie
           createSession(requestWithoutCookie, response, function() {
+            //THIS IS UPDATING THE SESSION USERID
             var hash = requestWithoutCookie.session.hash;
+
+
+            // hash: hash that is generated when no cookies are present
+            // id: in user where username is billzito, the id from here.
+
+            // question: how do i know the session created is going to be billzitos
+            // possible answer:
+
             db.query('UPDATE sessions SET userId = ? WHERE hash = ?', [userId, hash], function(error, result) {
 
               var secondResponse = httpMocks.createResponse();
