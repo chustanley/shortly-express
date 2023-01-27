@@ -94,7 +94,7 @@ app.post('/signup', (req, res, next) => {
 
 app.post('/login', (req, res, next) => {
 
-  console.log(req.body.username);
+  console.log(req.body.username); //comment
 
   models.Users.get({username: req.body.username}) //retrieving the row where username: username
     .then((data) => {
