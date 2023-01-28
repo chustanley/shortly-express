@@ -3,6 +3,10 @@ const path = require('path');
 const utils = require('./lib/hashUtils');
 const partials = require('express-partials');
 const Auth = require('./middleware/auth');
+
+const cookieParser = require('./middleware/cookieParser.js');
+const session = require('./middleware/auth.js');
+
 const models = require('./models');
 const db = require('./db');
 const app = express();
@@ -16,10 +20,17 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 
 
+app.use(cookieParser); //this works
+
+app.use(Auth.createSession);
+
+
+
 app.get('/',
   (req, res) => {
     res.render('index');
   });
+
 
 app.get('/create',
   (req, res) => {
@@ -77,16 +88,21 @@ app.post('/links',
 // Write your authentication routes here
 /************************************************************/
 
+
+
+
+
+
 app.post('/signup', (req, res, next) => {
 
   console.log('hi');
 
   models.Users.create(req.body)
     .then((data) => {
-      res.redirect(201, '/');
+      res.redirect('/');
     })
     .catch((err) => {
-      res.redirect(401, '/signup');
+      res.redirect('/signup');
     });
 
 });
@@ -119,6 +135,9 @@ app.post('/login', (req, res, next) => {
       throw err;
     });
 });
+
+
+
 
 
 /************************************************************/

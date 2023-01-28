@@ -138,6 +138,8 @@ describe('', function() {
       request(options, function(error, res, body) {
         var queryString = 'SELECT * FROM users where username = "Samantha"';
         db.query(queryString, function(err, rows) {
+
+
           if (err) { done(err); }
           var user = rows[0];
           expect(user).to.exist;
@@ -352,11 +354,11 @@ describe('', function() {
           expect(cookies).to.eql({});
         });
 
-        // cookieParser(requestWithCookies, response, function() {
-        //   var cookies = requestWithCookies.cookies;
-        //   expect(cookies).to.be.an('object');
-        //   expect(cookies).to.eql({ shortlyid: '8a864482005bcc8b968f2b18f8f7ea490e577b20' });
-        // });
+        cookieParser(requestWithCookies, response, function() {
+          var cookies = requestWithCookies.cookies;
+          expect(cookies).to.be.an('object');
+          expect(cookies).to.eql({ shortlyid: '8a864482005bcc8b968f2b18f8f7ea490e577b20' });
+        });
 
         cookieParser(requestWithMultipleCookies, response, function() {
           var cookies = requestWithMultipleCookies.cookies;
@@ -371,16 +373,17 @@ describe('', function() {
       });
     });
 
-    xdescribe('Session Parser', function() {
+    describe('Session Parser', function() {
       it('initializes a new session when there are no cookies on the request', function(done) {
         var requestWithoutCookies = httpMocks.createRequest();
         var response = httpMocks.createResponse();
 
-        createSession(requestWithoutCookies, response, function() {
+        createSession(requestWithoutCookies, response, function(string) { // if you dont call next this wont be called.
           var session = requestWithoutCookies.session;
           expect(session).to.exist;
           expect(session).to.be.an('object');
           expect(session.hash).to.exist;
+          console.log(string);
           done();
         });
       });
@@ -399,37 +402,58 @@ describe('', function() {
 
       it('assigns a session object to the request if a session already exists', function(done) {
 
-        var requestWithoutCookie = httpMocks.createRequest();
-        var response = httpMocks.createResponse();
+        var requestWithoutCookie = httpMocks.createRequest(); // PRE SESSION
+        var response = httpMocks.createResponse(); //PRE SESSION
 
-        createSession(requestWithoutCookie, response, function() {
-          var cookie = response.cookies.shortlyid.value; // after the session was created, response will have this.
-          var secondResponse = httpMocks.createResponse(); // another resposne
-          var requestWithCookies = httpMocks.createRequest(); // has cookies already
-          requestWithCookies.cookies.shortlyid = cookie;
+        //FIRST SESSION REQUEST
+        createSession(requestWithoutCookie, response, function(string) {
 
-          createSession(requestWithCookies, secondResponse, function() { // its saying that you should create sessions object even if they do have cookies
+          var cookie = response.cookies.shortlyid.value; //POST SESSION PROPERTY
+
+          var secondResponse = httpMocks.createResponse(); // SECOND SESSION RESPONSE
+          var requestWithCookies = httpMocks.createRequest(); // SECOND SESSION REQUEST
+
+          requestWithCookies.cookies.shortlyid = cookie; // giving SECONDS SESSION REQUEST a COOKIE PROPERTY PRESENT!!
+
+
+          //CREATE session EVEN IF request HAS cookies present.
+          createSession(requestWithCookies, secondResponse, function(string) {
             var session = requestWithCookies.session;
             expect(session).to.be.an('object');
             expect(session.hash).to.exist;
             // expect(session.hash).to.be.cookie;  Should we use https://www.npmjs.com/package/chai-http
+            console.log(string);
+            // IS THIS SAYING THAT SESSION.HASH SHOULD ALWAYS = TO ITS COOKIES.SHORTLYID?
             done();
           });
         });
       });
 
       it('creates a new hash for each new session', function(done) {
-        var requestWithoutCookies = httpMocks.createRequest();
-        var response = httpMocks.createResponse();
+        var requestWithoutCookies = httpMocks.createRequest(); //first request
+        var response = httpMocks.createResponse(); //first response
 
         createSession(requestWithoutCookies, response, function() {
-          var sessionHashOne = requestWithoutCookies.session.hash;
-          var secondRequestWithoutCookies = httpMocks.createRequest();
-          var responseTwo = httpMocks.createResponse();
+
+
+
+          var sessionHashOne = requestWithoutCookies.session.hash; //first request's sessions hash
+
+
+          var secondRequestWithoutCookies = httpMocks.createRequest(); // second request
+          var responseTwo = httpMocks.createResponse(); // second response
+
 
           createSession(secondRequestWithoutCookies, responseTwo, function() {
-            var sessionHashTwo = secondRequestWithoutCookies.session.hash;
+
+
+            var sessionHashTwo = secondRequestWithoutCookies.session.hash; // second request sessions hash
+
             expect(sessionHashOne).to.not.equal(sessionHashTwo);
+
+            // every session needs a unique hash in session
+            console.log('-----test1---->', sessionHashOne);
+            console.log('-----test2---->', sessionHashTwo);
             done();
           });
         });
@@ -438,7 +462,7 @@ describe('', function() {
       it('assigns a username and userId property to the session object if the session is assigned to a user', function(done) {
         var requestWithoutCookie = httpMocks.createRequest();
         var response = httpMocks.createResponse();
-        var username = 'BillZito';
+        var username = 'BillZito'; //the user
 
         db.query('INSERT INTO users (username) VALUES (?)', username, function(error, results) {
           if (error) { return done(error); }
@@ -465,8 +489,8 @@ describe('', function() {
               createSession(requestWithCookies, secondResponse, function() {
                 var session = requestWithCookies.session;
                 expect(session).to.be.an('object');
-                expect(session.user.username).to.eq(username);
-                expect(session.userId).to.eq(userId);
+                expect(session.user.username).to.eq(username); //username from user
+                expect(session.userId).to.eq(userId); // userId
                 done();
               });
             });
@@ -490,7 +514,7 @@ describe('', function() {
     });
   });
 
-  xdescribe('Sessions and cookies', function() {
+  describe('Sessions and cookies', function() {
     var requestWithSession;
     var cookieJar;
 
@@ -530,7 +554,12 @@ describe('', function() {
     it('sets and stores a cookie on the client', function(done) {
       requestWithSession('http://127.0.0.1:4568/', function(error, res, body) {
         if (error) { return done(error); }
+
+
         var cookies = cookieJar.getCookies('http://127.0.0.1:4568/');
+
+
+        console.log('------COOKIES---->', cookies);
         expect(cookies.length).to.equal(1);
         done();
       });
