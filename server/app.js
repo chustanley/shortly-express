@@ -28,17 +28,26 @@ app.use(Auth.createSession);
 
 app.get('/',
   (req, res) => {
+    if (req.headers.cookie === undefined) {
+      res.redirect('login');
+    }
     res.render('index');
   });
 
 
 app.get('/create',
   (req, res) => {
+    if (req.headers.cookie === undefined) {
+      res.redirect('login');
+    }
     res.render('index');
   });
 
 app.get('/links',
   (req, res, next) => {
+    if (req.headers.cookie === undefined) {
+      res.redirect('login');
+    }
     models.Links.getAll()
       .then(links => {
         res.status(200).send(links);
@@ -89,21 +98,80 @@ app.post('/links',
 /************************************************************/
 
 
+app.get('/signup', (req, res, next) => {
+  res.render('signup');
+});
+
+app.get('/login', (req, res, next) => {
+  res.render('login');
+});
 
 
+app.get('/logout', (req, res, next) => {
+
+  console.log('--------logout---------->', req.headers);
+
+  // get the id number from req.headers. which we did
+
+  // check if present on the sessions table.
+
+  // if present? then.. delete
+
+  // reorganize cookies?
+
+
+  models.Sessions.get({hash: req.headers.cookie.split('=')[1]})
+    .then((sessionRow) => {
+      // console.log('-------------session row------>', sessionRow);
+
+      if (!sessionRow) {
+        throw sessionRow;
+      } else {
+        return sessionRow;
+      }
+    })
+    .then((deletingSession) => {
+      return models.Sessions.delete({hash: deletingSession.hash});
+    })
+    .then(() => {
+      res.redirect('/signup');
+    })
+    .catch();
+
+
+  next();
+});
 
 
 app.post('/signup', (req, res, next) => {
 
-  console.log('hi');
+  var username = req.body.username; // recieved as input from the page
+  var password = req.body.password; // recieved as input from the page
 
-  models.Users.create(req.body)
-    .then((data) => {
+  models.Users.get({username})
+    .then((user) => {
+      if (user) { // that means user already exist so we should send them back and make them signup again
+        throw user;
+      } else {
+        return models.Users.create({username, password});
+      }
+    })
+    .then((newUser) => { // associating a session location down below with a specific userID!!!
+      return models.Sessions.update({hash: req.session.hash}, {userId: newUser.insertId});
+    })
+    .then(() => {
       res.redirect('/');
     })
-    .catch((err) => {
+    .catch(() => {
       res.redirect('/signup');
     });
+  // models.Users.create(req.body)
+  //   .then((data) => {
+  //     res.redirect('/');
+  //   })
+  //   .catch((err) => {
+  //     res.redirect('/signup');
+  //   });
 
 });
 
@@ -117,7 +185,7 @@ app.post('/login', (req, res, next) => {
       //Sucessfull or fail, it will end up here.
       //Success: show row of data in object form
       //Fail: undefined
-      console.log('------->', data);
+      // console.log('------->', data);
 
       if (data === undefined) { //if the username is not in signup.
         res.redirect('/login');
@@ -125,7 +193,7 @@ app.post('/login', (req, res, next) => {
 
 
         if (models.Users.compare(req.body.password, data.password, data.salt)) { // this returns boolean
-          res.redirect(201, '/');
+          res.redirect('/');
         } else {
           res.redirect('/login');
         }
