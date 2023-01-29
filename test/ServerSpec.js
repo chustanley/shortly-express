@@ -244,6 +244,61 @@ describe('', function() {
       });
     });
 
+
+
+
+    it('Should not make another account with the same username', function(done) {
+      var options = {
+        'method': 'POST',
+        'uri': 'http://127.0.0.1:4568/signup',
+        'json': {
+          'username': 'Samantha',
+          'password': 'Samantha'
+        }
+      };
+
+      request(options, function(error, res, body) {
+        if (error) { return done(error); }
+        db.query('SELECT * FROM users', function(err, results) {
+          if (err) { return done(err); }
+          var session = results[1];
+          expect(session).to.not.exist;
+        });
+        done();
+      });
+    });
+
+
+
+
+
+
+
+
+
+
+
+    it('Passwords are case sensitive', function(done) {
+      var options = {
+        'method': 'POST',
+        'uri': 'http://127.0.0.1:4568/login',
+        'json': {
+          'username': 'Samantha',
+          'password': 'SamanthA'
+        }
+      };
+
+      request(options, function(error, res, body) {
+        if (error) { return done(error); }
+        expect(res.headers.location).to.equal('/login');
+        done();
+      });
+    });
+
+
+
+
+
     it('Users that do not exist are kept on login page', function(done) {
       var options = {
         'method': 'POST',
